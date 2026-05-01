@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIGMET Varsler — Norge</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
+  :root {
+    --bg:         #05080f;
+    --surface:    #0b1120;
+    --card:       #0f1929;
+    --border:     #1a2840;
+    --text:       #c8d8f0;
+    --muted:      #4a6080;
+    --ok:         #1e9a6e;
+    --ok-dim:     rgba(30,154,110,0.12);
+    --yellow:     #d4a017;
+    --yellow-dim: rgba(212,160,23,0.12);
+    --red:        #c0392b;
+    --red-dim:    rgba(192,57,43,0.13);
+    --blue:       #2980b9;
+    --blue-dim:   rgba(41,128,185,0.12);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'IBM Plex Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+  body::before {
+    content:''; position:fixed; top:-40%; right:-20%;
+    width:80vw; height:80vw; border-radius:50%;
+    background:radial-gradient(circle,rgba(41,128,185,0.045) 0%,transparent 70%);
+    pointer-events:none; z-index:0; animation:breathe 8s ease-in-out infinite;
+  }
+  @keyframes breathe { 0%,100%{transform:scale(1);opacity:.5} 50%{transform:scale(1.05);opacity:1} }
+
+  .app { position:relative; z-index:1; max-width:900px; margin:0 auto; padding:36px 20px 60px; }
+
+  header { display:flex; align-items:center; gap:16px; margin-bottom:8px; }
+  .radar-icon { width:48px; height:48px; flex-shrink:0; }
+  .radar-icon svg { width:100%; height:100%; }
+  .radar-ring { fill:none; stroke:var(--blue); stroke-width:1.5; }
+  .radar-sweep { transform-origin:24px 24px; animation:sweep 4s linear infinite; }
+  @keyframes sweep { to{transform:rotate(360deg)} }
+
+  header h1 { font-family:'IBM Plex Mono',monospace; font-size:26px; font-weight:600; color:#e8f0ff; }
+  header h1 span { color:var(--blue); }
+  .subtitle { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:2px; margin-bottom:28px; padding-left:64px; }
+
+  .status-bar {
+    display:flex; align-items:center; justify-content:space-between;
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:10px; padding:12px 18px; margin-bottom:24px;
+    font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--muted);
+  }
+  .status-left { display:flex; align-items:center; gap:10px; }
+  .dot { width:8px; height:8px; border-radius:50%; background:var(--muted); flex-shrink:0; }
+  .dot.live  { background:var(--ok); box-shadow:0 0 6px var(--ok); animation:blink 2s ease-in-out infinite; }
+  .dot.error { background:var(--red); }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  .refresh-btn {
+    background:var(--card); border:1px solid var(--border); border-radius:6px;
+    color:var(--text); font-family:'IBM Plex Mono',monospace; font-size:11px;
+    padding:5px 14px; cursor:pointer; transition:all .15s;
+  }
+  .refresh-btn:hover { border-color:var(--blue); color:#80c8ff; }
+  .refresh-btn:disabled { opacity:.35; cursor:not-allowed; }
+
+  .tabs { display:flex; gap:6px; margin-bottom:20px; flex-wrap:wrap; }
+  .tab {
+    background:var(--surface); border:1px solid var(--border); border-radius:6px;
+    color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:11px;
+    font-weight:500; padding:6px 14px; cursor:pointer;
+    text-transform:uppercase; letter-spacing:1px; transition:all .15s;
+  }
+  .tab.active, .tab:hover { background:var(--blue-dim); border-color:var(--blue); color:#8ec8ff; }
+
+  .cards { display:flex; flex-direction:column; gap:12px; }
+
+  .card {
+    background:var(--card); border:1px solid var(--border);
+    border-left:3px solid var(--border);
+    border-radius:12px; padding:20px 22px;
+    animation:fadeIn .3s ease; transition:border-color .4s, background .4s;
+  }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+  .card.s-ok   { border-left-color:var(--ok); }
+  .card.s-warn { border-left-color:var(--yellow); border-color:rgba(212,160,23,.3); background:var(--yellow-dim); }
+  .card.s-crit { border-left-color:var(--red); border-color:rgba(192,57,43,.4); background:var(--red-dim); }
+
+  .card-header { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:14px; }
+  .card-title-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+
+  .badge {
+    font-family:'IBM Plex Mono',monospace; font-size:10px; font-weight:600;
+    padding:3px 8px; border-radius:4px; text-transform:uppercase; letter-spacing:1.5px;
+  }
+  .b-sigmet    { background:rgba(192,57,43,.2);  color:#ff8070; border:1px solid rgba(192,57,43,.4); }
+  .b-airmet    { background:rgba(212,160,23,.15); color:#ffd080; border:1px solid rgba(212,160,23,.3); }
+  .b-windshear { background:rgba(41,128,185,.15); color:#80c0ff; border:1px solid rgba(41,128,185,.3); }
+
+  .card-id { font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; color:#e8f0ff; }
+
+  .pill {
+    display:flex; align-items:center; gap:8px;
+    border-radius:8px; padding:8px 14px;
+    border:1px solid var(--border); background:var(--surface); flex-shrink:0; transition:all .4s;
+  }
+  .pill.ok   { background:var(--ok-dim);     border-color:rgba(30,154,110,.3); }
+  .pill.warn { background:var(--yellow-dim); border-color:rgba(212,160,23,.4); animation:warnPulse 2s ease-in-out infinite; }
+  .pill.crit { background:var(--red-dim);    border-color:rgba(192,57,43,.5);  animation:critPulse 1s ease-in-out infinite; }
+  @keyframes warnPulse { 0%,100%{box-shadow:0 0 0 0 rgba(212,160,23,0)} 50%{box-shadow:0 0 8px 2px rgba(212,160,23,.2)} }
+  @keyframes critPulse { 0%,100%{box-shadow:0 0 0 0 rgba(192,57,43,0)}  50%{box-shadow:0 0 10px 3px rgba(192,57,43,.3)} }
+
+  .cd-label { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:2px; }
+  .cd-val { font-family:'IBM Plex Mono',monospace; font-size:22px; font-weight:600; line-height:1; min-width:80px; color:var(--text); transition:color .4s; }
+  .cd-val.ok   { color:#4de8a8; }
+  .cd-val.warn { color:#ffc030; }
+  .cd-val.crit { color:#ff5040; }
+
+  .time-range {
+    display:grid; grid-template-columns:1fr auto 1fr;
+    align-items:center; gap:10px; margin-bottom:12px;
+    font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--muted);
+  }
+  .time-to { text-align:right; }
+
+  .prog-wrap { background:var(--surface); border:1px solid var(--border); border-radius:4px; height:6px; overflow:hidden; margin-bottom:14px; }
+  .prog-fill { height:100%; border-radius:4px; transition:width 1s linear, background .5s; }
+
+  .raw {
+    font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--muted);
+    line-height:1.7; background:var(--surface); border:1px solid var(--border);
+    border-radius:8px; padding:12px 14px; white-space:pre-wrap; word-break:break-all;
+    cursor:pointer; max-height:52px; overflow:hidden; position:relative;
+  }
+  .raw.open { max-height:600px; }
+  .raw::after { content:'▼ vis melding'; position:absolute; bottom:8px; right:12px; font-size:10px; color:var(--blue); background:var(--surface); padding-left:8px; }
+  .raw.open::after { content:'▲ skjul'; }
+
+  .msg { text-align:center; padding:60px 20px; color:var(--muted); }
+  .msg .icon { font-size:42px; margin-bottom:16px; opacity:.4; }
+  .msg h3 { font-size:16px; font-weight:600; color:var(--text); margin-bottom:8px; }
+  .msg p  { font-size:13px; line-height:1.6; }
+  .spinner { width:32px; height:32px; border:2px solid var(--border); border-top-color:var(--blue); border-radius:50%; animation:spin .8s linear infinite; margin:0 auto 16px; }
+  @keyframes spin { to{transform:rotate(360deg)} }
+  .next-refresh { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="radar-icon">
+      <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="24" cy="24" r="20" class="radar-ring" opacity=".2"/>
+        <circle cx="24" cy="24" r="14" class="radar-ring" opacity=".35"/>
+        <circle cx="24" cy="24" r="8"  class="radar-ring" opacity=".5"/>
+        <g class="radar-sweep">
+          <line x1="24" y1="24" x2="24" y2="4" stroke="#2980b9" stroke-width="1.5" opacity=".9"/>
+          <path d="M24 24 L24 4 A20 20 0 0 1 38 34 Z" fill="rgba(41,128,185,.08)"/>
+        </g>
+        <circle cx="24" cy="24" r="2.5" fill="#2980b9"/>
+      </svg>
+    </div>
+    <h1>SIGMET <span>Varsler</span></h1>
+  </header>
+  <div class="subtitle">Meteorologisk institutt · Norsk luftrom</div>
+
+  <div class="status-bar">
+    <div class="status-left">
+      <div class="dot" id="dot"></div>
+      <span id="status-txt">Kobler til...</span>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <span class="next-refresh" id="next-refresh"></span>
+      <button class="refresh-btn" id="btn-refresh" onclick="fetchData()">↻ Oppdater</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="setFilter('alle',this)">Alle varsler</button>
+    <button class="tab" onclick="setFilter('SIGMET',this)">SIGMET</button>
+    <button class="tab" onclick="setFilter('AIRMET',this)">AIRMET</button>
+    <button class="tab" onclick="setFilter('WINDSHEAR',this)">Vindskjær</button>
+  </div>
+
+  <div class="cards" id="cards"></div>
+</div>
+
+<script>
+let warnings = [];
+let filter = 'alle';
+let nextFetchAt = 0;
+
+
+const MET_URL = 'https://api.met.no/weatherapi/sigmets/2.0/';
+const PROXIES = [
+  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  url => `https://thingproxy.freeboard.io/fetch/${url}`,
+];
+
+async function fetchData() {
+  const btn = document.getElementById('btn-refresh');
+  btn.disabled = true; btn.textContent = '↻ Henter...';
+  setDot('', 'Henter data...');
+
+  let text = null;
+
+  // Try direct
+  try {
+    const res = await fetch(MET_URL, { signal: AbortSignal.timeout(8000) });
+    if (res.ok) text = await res.text();
+  } catch(e) {}
+
+  // Try proxies
+  if (!text) {
+    for (const proxyFn of PROXIES) {
+      try {
+        const res = await fetch(proxyFn(MET_URL), { signal: AbortSignal.timeout(10000) });
+        if (res.ok) { text = await res.text(); break; }
+      } catch(e) {}
+    }
+  }
+
+  if (!text) {
+    setDot('error', 'Kunne ikke hente data');
+    btn.disabled = false; btn.textContent = '↻ Prøv igjen';
+    return;
+  }
+
+  warnings = parse(text);
+  const n = warnings.length;
+  setDot('live', n === 0 ? 'Ingen aktive varsler' : `${n} varsel${n!==1?'er':''} aktive`);
+  nextFetchAt = Date.now() + 5 * 60 * 1000;
+  render();
+  btn.disabled = false; btn.textContent = '↻ Oppdater';
+}
+
+// ─── Parser for ICAO TAC format ───────────────────────────────────────────────
+// Format example:
+// ENOR AIRMET I01 VALID 010700/011100 ENMI-
+// ENOR SIGMET 3 VALID 010700/011100 ENMI-
+function parse(raw) {
+  if (!raw || !raw.trim()) return [];
+
+  // Join continuation lines — lines ending without = and next line starting with spaces or coords
+  // First normalize line endings
+  const normalized = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+  // Split into individual messages by the = terminator
+  const messages = normalized.split('=').map(m => m.trim()).filter(m => m.length > 10);
+
+  const result = [];
+
+  for (const msg of messages) {
+    // Clean up the message — join broken lines
+    const clean = msg.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+
+    // Detect type
+    let type = 'SIGMET';
+    if (/\bAIRMET\b/i.test(clean)) type = 'AIRMET';
+    else if (/\bSIGMET\b/i.test(clean)) type = 'SIGMET';
+    else if (/\bWS\b/.test(clean)) type = 'WINDSHEAR';
+    else continue; // not a warning
+
+    // Extract ID: e.g. "ENOR AIRMET I01" or "ENOR SIGMET 3"
+    const idMatch = clean.match(/([A-Z]{4}\s+(?:SIGMET|AIRMET|WS)\s+\S+)/i);
+    const id = idMatch ? idMatch[1].trim() : type;
+
+    // Extract VALID time: VALID DDHHMI/DDHHMI  (e.g. 010700/011100)
+    // Day + HHMM format in UTC
+    const validMatch = clean.match(/VALID\s+(\d{2})(\d{2})(\d{2})\/(\d{2})(\d{2})(\d{2})/);
+    if (!validMatch) {
+      console.log('Ingen VALID tid funnet i:', clean.substring(0, 80));
+      continue;
+    }
+
+    const now = new Date();
+    const fromDay = parseInt(validMatch[1]);
+    const fromH   = parseInt(validMatch[2]);
+    const fromM   = parseInt(validMatch[3]);
+    const toDay   = parseInt(validMatch[4]);
+    const toH     = parseInt(validMatch[5]);
+    const toM     = parseInt(validMatch[6]);
+
+    const from = utcDate(now, fromDay, fromH, fromM);
+    const to   = utcDate(now, toDay,   toH,   toM);
+
+    if (!from || !to) continue;
+
+    result.push({ id, type, from, to, raw: msg.trim() });
+  }
+
+  return result;
+}
+
+// Build UTC Date from current month/year + day + hour + minute
+function utcDate(ref, day, hour, minute) {
+  const y = ref.getUTCFullYear();
+  const m = ref.getUTCMonth();
+  // If day is less than current day, it might be next month
+  let month = m;
+  if (day < ref.getUTCDate() - 5) month = m + 1;
+
+  const dt = new Date(Date.UTC(y, month, day, hour, minute, 0));
+  return isNaN(dt.getTime()) ? null : dt;
+}
+
+// ─── UI helpers ───────────────────────────────────────────────────────────────
+function setDot(state, msg) {
+  const dot = document.getElementById('dot');
+  dot.className = 'dot' + (state ? ' '+state : '');
+  document.getElementById('status-txt').textContent = msg || '...';
+}
+
+function setFilter(f, btn) {
+  filter = f;
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+function filtered() {
+  if (filter === 'alle') return warnings;
+  return warnings.filter(w => w.type === filter);
+}
+
+function fmtTime(dt) {
+  return dt.toLocaleString('no-NO', {
+    timeZone:'UTC', day:'2-digit', month:'2-digit',
+    hour:'2-digit', minute:'2-digit', hour12:false
+  }) + ' UTC';
+}
+
+function fmtCountdown(ms) {
+  if (ms <= 0) return 'UTLØPT';
+  const s = Math.floor(ms/1000);
+  const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), ss = s%60;
+  const p = n => String(n).padStart(2,'0');
+  return h > 0 ? `${p(h)}:${p(m)}:${p(ss)}` : `${p(m)}:${p(ss)}`;
+}
+
+function urgency(w) {
+  const rem = w.to - Date.now();
+  if (rem <= 0)           return 'crit';
+  if (rem <= 30*60*1000)  return 'crit';
+  if (rem <= 40*60*1000)  return 'warn';
+  return 'ok';
+}
+
+function progress(w) {
+  const total = w.to - w.from;
+  if (total <= 0) return 0;
+  return Math.max(0, Math.min(100, ((w.to - Date.now()) / total) * 100));
+}
+
+function barColor(u) {
+  if (u === 'ok')   return '#1e9a6e';
+  if (u === 'warn') return '#d4a017';
+  return '#c0392b';
+}
+
+// ─── Render ───────────────────────────────────────────────────────────────────
+function render() {
+  const list = filtered();
+  const el = document.getElementById('cards');
+
+  if (list.length === 0) {
+    el.innerHTML = `<div class="msg">
+      <div class="icon">✅</div>
+      <h3>Ingen aktive varsler</h3>
+      <p>Ingen SIGMET, AIRMET eller vindskjærvarsler er nå aktive for norsk luftrom.</p>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = list.map((w, i) => {
+    const u   = urgency(w);
+    const rem = w.to - Date.now();
+    const pct = progress(w);
+    const bc  = barColor(u);
+    const typeMap  = { SIGMET:'sigmet', AIRMET:'airmet', WINDSHEAR:'windshear' };
+    const labelMap = { SIGMET:'SIGMET', AIRMET:'AIRMET', WINDSHEAR:'Vindskjær' };
+
+    return `
+    <div class="card s-${u}" id="c${i}">
+      <div class="card-header">
+        <div>
+          <div class="card-title-row">
+            <span class="badge b-${typeMap[w.type]}">${labelMap[w.type]}</span>
+            <span class="card-id">${w.id}</span>
+          </div>
+        </div>
+        <div class="pill ${u}" id="pill${i}">
+          <div>
+            <div class="cd-label">Utløper om</div>
+            <div class="cd-val ${u}" id="cd${i}">${fmtCountdown(rem)}</div>
+          </div>
+        </div>
+      </div>
+      <div class="time-range">
+        <div>▶ ${fmtTime(w.from)}</div>
+        <div style="color:var(--border)">→</div>
+        <div class="time-to">${fmtTime(w.to)} ◀</div>
+      </div>
+      <div class="prog-wrap">
+        <div class="prog-fill" id="bar${i}" style="width:${pct}%;background:${bc}"></div>
+      </div>
+      <div class="raw" id="raw${i}" onclick="this.classList.toggle('open')">${w.raw}</div>
+    </div>`;
+  }).join('');
+}
+
+// ─── Tick ─────────────────────────────────────────────────────────────────────
+function tick() {
+  filtered().forEach((w, i) => {
+    const u   = urgency(w);
+    const rem = w.to - Date.now();
+    const pct = progress(w);
+
+    const cd   = document.getElementById(`cd${i}`);
+    const pill = document.getElementById(`pill${i}`);
+    const card = document.getElementById(`c${i}`);
+    const bar  = document.getElementById(`bar${i}`);
+
+    if (cd)   { cd.textContent = fmtCountdown(rem); cd.className = `cd-val ${u}`; }
+    if (pill)  pill.className = `pill ${u}`;
+    if (card)  card.className = `card s-${u}`;
+    if (bar)  { bar.style.width = pct+'%'; bar.style.background = barColor(u); }
+  });
+
+  const secLeft = Math.max(0, Math.round((nextFetchAt - Date.now()) / 1000));
+  const nr = document.getElementById('next-refresh');
+  if (nr && nextFetchAt) {
+    const m = Math.floor(secLeft/60), s = secLeft%60;
+    nr.textContent = `Auto om ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  }
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+document.getElementById('cards').innerHTML =
+  `<div class="msg"><div class="spinner"></div><h3>Henter varsler...</h3></div>`;
+
+fetchData();
+setInterval(tick, 1000);
+setInterval(fetchData, 5 * 60 * 1000);
+</script>
+</body>
+</html>
