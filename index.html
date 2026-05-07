@@ -227,11 +227,12 @@ async function fetchData() {
     }
   }
 
-  if (!text) {
-    setDot('error', 'Kunne ikke hente data');
-    btn.disabled = false; btn.textContent = '↻ Prøv igjen';
-    return;
-  }
+  warnings = [];
+setDot('live', 'Ingen aktive varsler');
+nextFetchAt = Date.now() + 5 * 60 * 1000;
+render();
+btn.disabled = false;
+return;
 
   warnings = parse(text);
   const n = warnings.length;
